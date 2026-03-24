@@ -15,7 +15,7 @@ int main()
 
     mouse.create();
 
-    while (true)
+    while (true) //Maybe change this
     {
         mouse.running();
     }
