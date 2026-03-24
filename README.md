@@ -1,4 +1,4 @@
-Simple linux Driver for the Corsair Harpoon RGB Wireless in C++ with libusb
+Simple Linux Driver for the Corsair Harpoon RGB Wireless in C++ with libusb
 
 Basic Features supported for now(DPI, MainColor, PollingRate)
 
