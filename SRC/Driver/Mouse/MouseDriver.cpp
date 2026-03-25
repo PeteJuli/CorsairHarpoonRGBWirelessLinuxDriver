@@ -139,7 +139,6 @@ bool MouseDriver::create()
             setColor(0xff, 0, 0, 0);
             setDPI(800);
 
-            //cableUSB.write2();
             setColor(0xff, 0, 0, 0);
 
             return true;
