@@ -139,8 +139,6 @@ bool MouseDriver::create()
             setColor(0xff, 0, 0, 0);
             setDPI(800);
 
-            setColor(0xff, 0, 0, 0);
-
             return true;
         }
     }
