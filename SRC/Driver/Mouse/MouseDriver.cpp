@@ -16,14 +16,12 @@ bool MouseDriver::setEssentials()
 
     if (mode == 0)//Mode
     {
-        essentials0[0] = 0x08;
-        essentials1[0] = 0x08;
+        essentials0[0] = essentials1[0] = 0x08;
 
         return cableUSB.write(essentials0) && cableUSB.write(essentials1);
     }else
     {
-        essentials0[0] = 0x0a;
-        essentials1[0] = 0x0a;
+        essentials0[0] = essentials1[0] = 0x0a;
 
         return wirlessUSB.write(essentials0) && wirlessUSB.write(essentials1);
     }
@@ -76,10 +74,6 @@ bool MouseDriver::setDPI(uint32_t DPI)
 bool MouseDriver::setColor(uint8_t Red, uint8_t Green, uint8_t Blue, uint8_t Alpha)
 {
     uint8_t buffer[64]{};
-    for (int i = 0; i < 64; i++)
-    {
-        buffer[i] = 0x0;
-    }
 
     buffer[1] = 0x06;
     buffer[3] = 0x06;
@@ -94,6 +88,26 @@ bool MouseDriver::setColor(uint8_t Red, uint8_t Green, uint8_t Blue, uint8_t Alp
 
         cableUSB.write(buffer);
         return true;
+    }else
+    {
+        buffer[0] = 0x0a;
+        return wirlessUSB.write(buffer);
+    }
+
+    return false;
+}
+
+bool MouseDriver::setPollingRate(uint8_t rate)
+{
+    uint8_t buffer[64]{};
+    buffer[1] = 0x01;
+    buffer[2] = 0x01;
+    buffer[4] = rate;//0x01=125HZ, 0x02=250Hz, 0x03=500Hz, 0x04=1000Hz
+
+    if (mode == 0)//Cable
+    {
+        buffer[0] = 0x08;
+        return cableUSB.write(buffer);
     }else
     {
         buffer[0] = 0x0a;
@@ -133,12 +147,15 @@ bool MouseDriver::create()
 
         if (mode != -1)
         {
+            //PollingRate needs to be set before everything else cause the mouse restarts after it and sets everything to default
+            setPollingRate(0x04);
+            
             setEssentials();
 
             //Change this with variables for easy changing...
             setColor(0xff, 0, 0, 0);
             setDPI(800);
-
+            
             return true;
         }
     }

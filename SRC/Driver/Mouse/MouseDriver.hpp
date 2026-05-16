@@ -18,6 +18,7 @@ public:
     void destroy();
     bool setDPI(uint32_t DPI);
     bool setColor(uint8_t Red, uint8_t Green, uint8_t Blue, uint8_t Alpha);
+    bool setPollingRate(uint8_t rate);
 };
 
 
