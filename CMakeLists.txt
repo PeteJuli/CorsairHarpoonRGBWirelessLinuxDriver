@@ -4,7 +4,7 @@ project(CorsairHarpoonRGBWirelessLinuxDriver)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(LIBUSB REQUIRED libusb-1.0)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 
 add_executable(CorsairHarpoonRGBWirelessLinuxDriver SRC/main.cpp
         SRC/Driver/USB/USB.cpp

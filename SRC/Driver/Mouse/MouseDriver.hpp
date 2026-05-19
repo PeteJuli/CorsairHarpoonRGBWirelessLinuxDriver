@@ -1,26 +1,37 @@
-#ifndef _MouseDriver_HPP_
-#define _MouseDriver_HPP_
+#pragma once
+
 #include "../USB/USB.hpp"
+#include <optional>
+
+enum class ConnectionType 
+{
+    Unknown,
+    Cable,
+    Wireless
+};
 
 class MouseDriver
 {
-    USB cableUSB;
-    USB wirlessUSB;
-    int mode;
-    size_t usbCount;
-    bool setEssentials();
-    void decideMode();
+    std::optional<USB> usbDevices;
+    std::optional<USB> cableUSB;
+    std::optional<USB> wirlessUSB;
 
+    ConnectionType currentMode;
+    ConnectionType LastMode;
+    
+    bool writeToMouse(std::span<uint8_t, 64> buffer);
 public:
-    bool create();
-    bool running();
+    MouseDriver();
+
+    bool decideMode();
     bool blockDefaultReset();
-    void destroy();
+
+
+    bool setEssentials();
     bool setDPI(uint32_t DPI);
-    bool setColor(uint8_t Red, uint8_t Green, uint8_t Blue, uint8_t Alpha);
+    bool setColor(uint8_t Red, uint8_t Green, uint8_t Blue);
     bool setPollingRate(uint8_t rate);
+
+    ConnectionType getCurrentMode() const noexcept { return currentMode; }
+    ConnectionType getLastMode() const noexcept { return LastMode; }
 };
-
-
-
-#endif //!_MouseDriver_HPP_

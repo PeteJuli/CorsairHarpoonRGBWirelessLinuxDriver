@@ -1,79 +1,96 @@
 #include "USB.hpp"
-
 #include <iostream>
 
-size_t USB::getDeviceListCount()
+bool USB::isDeviceConnected(uint16_t vendorID, uint16_t productID)
 {
-    libusb_device **list;
+    libusb_device **rawDevice = nullptr;
+    const ssize_t count = libusb_get_device_list(context.get(), &rawDevice);
 
-    return libusb_get_device_list(context, &list);;
-}
-
-bool USB::isCreated()
-{
-    return created;
-}
-
-bool USB::create(uint16_t vid, uint16_t pid)//1b1c:1b5e
-{
-    created = false;
-
-    //Init LIBUSB
-    if (libusb_init(&context) < 0)
-        return false;
-
-    //Open Handle
-    handle = libusb_open_device_with_vid_pid(context, vid, pid);//Cable = 0x1b5e //Adapter = 0x1bdc
-
-    if (!handle)
+    if (count < 0)
     {
-        libusb_exit(context);
+        std::cerr << "Error retrieving USB device list" << std::endl;
         return false;
     }
 
-    // Kernel Driver detach
-    if (libusb_kernel_driver_active(handle, 1) == 1)
+    std::unique_ptr<libusb_device *[], decltype([](libusb_device **d){ libusb_free_device_list(d, 1); })> devs(rawDevice);
+
+    //
+    for (const auto &dev : std::span(devs.get(), static_cast<size_t>(count)))
     {
-        libusb_detach_kernel_driver(handle, 1);
+        libusb_device_descriptor desc;
+        if (libusb_get_device_descriptor(dev, &desc) < 0)
+        {
+            continue;
+        }
+
+        if (desc.idVendor == vendorID && desc.idProduct == productID)
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+USB::USB()
+{
+    // Init LIBUSB
+    libusb_context *rawContext = nullptr;
+    if (libusb_init(&rawContext) < 0)
+    {
+        std::cerr << "Failed to initialize libusb context" << std::endl;
+    }
+    context.reset(rawContext);
+
+    // Needs to set interfaceClaimed to true, otherwise the isOpen() function will return false
+    interfaceClaimed = true;
+}
+
+USB::USB(uint16_t vid, uint16_t pid)
+{
+    // Init LIBUSB
+    libusb_context *rawContext = nullptr;
+    if (libusb_init(&rawContext) < 0)
+    {
+        std::cerr << "Failed to initialize libusb context" << std::endl;
+    }
+    context.reset(rawContext);
+
+    // Open Device Handle
+    libusb_device_handle *rawHandle = libusb_open_device_with_vid_pid(context.get(), vid, pid);
+    if (!rawHandle)
+    {
+        std::cerr << "Failed to open USB device (VID/PID mismatch or permissions)" << std::endl;
+    }
+    handle.reset(rawHandle);
+
+    // Kernel Driver detach when active
+    if (libusb_kernel_driver_active(handle.get(), 1) == 1)
+    {
+        libusb_detach_kernel_driver(handle.get(), 1);
     }
 
     // Interface 1 claimen
-    if (libusb_claim_interface(handle, 1) < 0)
+    if (libusb_claim_interface(handle.get(), 1) < 0)
     {
-        libusb_close(handle);
-        libusb_exit(context);
-        return false;
+        std::cerr << "Failed to claim interface 1" << std::endl;
     }
 
-    created = true;
-
-    return true;
+    interfaceClaimed = true;
 }
 
-bool USB::destroy()
+bool USB::isOpen() const noexcept
 {
-    if (libusb_release_interface(handle, 1) < 0)
+    return handle != nullptr && interfaceClaimed;
+}
+
+bool USB::write(std::span<const uint8_t, 64> buffer)
+{
+    if (!isOpen())
         return false;
 
-    libusb_close(handle);
-
-    libusb_exit(context);
-
-    created = false;
-
-    return true;
-}
-
-bool USB::write(uint8_t * buffer)
-{
     int transferred = 0;
 
-    //Some hardcode in our case endpoint = 0x4 and packetsize to 64 bytes
-    if (libusb_bulk_transfer(handle, 0x04, buffer, 64, &transferred,1000) < 0)
-    {
-        return false;
-    }
-
-    return true;
+    // Some hardcode in our case endpoint = 0x4 and packetsize to 64 bytes
+    return (libusb_bulk_transfer(handle.get(), 0x04, const_cast<uint8_t *>(buffer.data()), static_cast<int>(buffer.size()), &transferred, 1000) == 0);
 }
-
