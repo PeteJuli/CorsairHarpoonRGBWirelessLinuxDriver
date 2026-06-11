@@ -10,6 +10,13 @@ enum class ConnectionType
     Wireless
 };
 
+struct Color
+{
+    uint8_t red;
+    uint8_t green;
+    uint8_t blue;
+};
+
 class MouseDriver
 {
     std::optional<HID> hidDevices;
@@ -29,7 +36,9 @@ public:
 
     bool setEssentials();
     bool setDPI(uint32_t DPI);
-    bool setColor(uint8_t Red, uint8_t Green, uint8_t Blue);
+    bool setBrightness(uint32_t brightness);
+    bool setColor(Color color);
+    bool setColor(Color logo, Color profileButton);
     bool setPollingRate(uint8_t rate);
 
     ConnectionType getCurrentMode() const noexcept { return currentMode; }

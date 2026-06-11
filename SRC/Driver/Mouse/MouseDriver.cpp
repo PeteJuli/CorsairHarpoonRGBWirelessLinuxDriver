@@ -24,7 +24,7 @@ bool MouseDriver::writeToMouse(std::span<uint8_t, 64> buffer)
     }
 }
 
-// Two bools which are necessary
+// Two bools which are necessary to write
 bool MouseDriver::setEssentials()
 {
     // Maybe some kind of customeMode bool?
@@ -38,7 +38,8 @@ bool MouseDriver::setEssentials()
     essentials1[1] = 0x0d;
     essentials1[3] = 0x01;
 
-    return writeToMouse(essentials0) && writeToMouse(essentials1);
+    //block default reset needs to be called after them
+    return writeToMouse(essentials0) && writeToMouse(essentials1) && blockDefaultReset();
 }
 
 uint32_t swapEndian(uint32_t value)
@@ -74,18 +75,41 @@ bool MouseDriver::setDPI(uint32_t DPI)
     return writeToMouse(buffer);
 }
 
-bool MouseDriver::setColor(uint8_t Red, uint8_t Green, uint8_t Blue)
+bool MouseDriver::setBrightness(uint32_t brightness)//set Brightness fom 0 to 1000
+{
+    std::array<uint8_t, 64> buffer{};
+
+    buffer[1] = 0x01;
+    buffer[2] = 0x02;
+    uint8_t brightnessValue[4];
+    splitBytes(swapEndian(brightness), brightnessValue);
+    buffer[4] = brightnessValue[0];
+    buffer[5] = brightnessValue[1];
+    // buffer[6] = brightnessValue[2];//Dont need them for brightness
+    // buffer[7] = brightnessValue[3];
+
+    return writeToMouse(buffer);
+}
+
+bool MouseDriver::setColor(Color logo, Color profileButton)
 {
     std::array<uint8_t, 64> buffer{};
 
     buffer[1] = 0x06;
     buffer[3] = 0x06;
-    buffer[7] = 0xff;
-    buffer[8] = Red;
-    buffer[10] = Green;
-    buffer[12] = Blue;
+    buffer[7] = profileButton.red;
+    buffer[8] = logo.red;
+    buffer[9] = profileButton.green;
+    buffer[10] = logo.green;
+    buffer[11] = profileButton.blue;
+    buffer[12] = logo.blue;
 
     return writeToMouse(buffer);
+}
+
+bool MouseDriver::setColor(Color color)
+{
+    return setColor(color, color);
 }
 
 bool MouseDriver::setPollingRate(uint8_t rate)
@@ -94,12 +118,12 @@ bool MouseDriver::setPollingRate(uint8_t rate)
 
     buffer[1] = 0x01;
     buffer[2] = 0x01;
-    buffer[4] = rate; // 0x01=125HZ, 0x02=250Hz, 0x03=500Hz, 0x04=1000Hz
+    buffer[4] = rate; // 0x01=125HZ/8ms, 0x02=250Hz/4ms, 0x03=500Hz/2ms, 0x04=1000Hz/1ms
 
     return writeToMouse(buffer);
 }
 
-MouseDriver::MouseDriver() //: cableUSB(0x1b1c, 0x1b5e), wirlessUSB(0x1b1c, 0x1bdc)
+MouseDriver::MouseDriver() //: cable(0x1b1c, 0x1b5e), wirless(0x1b1c, 0x1bdc)
 {
     // Get Main USB Device List for Scanning
     hidDevices.emplace();

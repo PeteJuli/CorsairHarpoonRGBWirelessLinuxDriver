@@ -23,9 +23,17 @@ int main()
             {
                 mouse.setPollingRate(0x04);
 
+                //Sometime the restart of pullingrate needs to be delayed to set the other things
+                sleep(1);
+
+                //cause of sleep
+                count++;
+
                 mouse.setEssentials();
 
-                mouse.setColor(0xff, 0, 0);
+                mouse.setColor(Color{255, 0, 0});
+
+                mouse.setBrightness(1000);
 
                 mouse.setDPI(800);
             }
