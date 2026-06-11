@@ -3,11 +3,11 @@
 #include <unistd.h>
 
 // Constants
-constexpr uint16_t CorsairVendorID = 0x1b1c;
-constexpr uint16_t CablePID = 0x1b5e;
-constexpr uint16_t WirlessPID = 0x1bdc;
+constexpr uint16_t CorsairVendorID = 0x1B1C;
+constexpr uint16_t CablePID = 0x1B5E;
+constexpr uint16_t WirlessPID = 0x1BDC;
 constexpr uint8_t CableOffset = 0x08;
-constexpr uint8_t WirlessOffset = 0x0a;
+constexpr uint8_t WirlessOffset = 0x09; //if the Slipstream Reciver and Mouse were paired its 0x09 else its 0x0a(Dont know why but it is what it is)
 
 bool MouseDriver::writeToMouse(std::span<uint8_t, 64> buffer)
 {
@@ -17,10 +17,10 @@ bool MouseDriver::writeToMouse(std::span<uint8_t, 64> buffer)
         return false;
     case ConnectionType::Cable:
         buffer[0] = CableOffset;
-        return cableUSB->write(buffer);
+        return cableHID->write(buffer);
     case ConnectionType::Wireless:
         buffer[0] = WirlessOffset;
-        return wirlessUSB->write(buffer);
+        return wirelessHID->write(buffer);
     }
 }
 
@@ -102,7 +102,7 @@ bool MouseDriver::setPollingRate(uint8_t rate)
 MouseDriver::MouseDriver() //: cableUSB(0x1b1c, 0x1b5e), wirlessUSB(0x1b1c, 0x1bdc)
 {
     // Get Main USB Device List for Scanning
-    usbDevices.emplace();
+    hidDevices.emplace();
 
     //For decide Logic
     currentMode = ConnectionType::Unknown;
@@ -112,24 +112,24 @@ MouseDriver::MouseDriver() //: cableUSB(0x1b1c, 0x1b5e), wirlessUSB(0x1b1c, 0x1b
 bool MouseDriver::decideMode()
 {
     // Start with Cable cause if both are connected we want to use the cable connection
-    if (usbDevices->isDeviceConnected(CorsairVendorID, CablePID))
+    if (hidDevices->isDeviceConnected(CorsairVendorID, CablePID))
     {
         LastMode = currentMode;
         currentMode = ConnectionType::Cable;
         if (LastMode != currentMode)
         {
-            cableUSB.emplace(CorsairVendorID, CablePID);
+            cableHID.emplace(CorsairVendorID, CablePID);
         }
 
         return true;
     }
-    else if (usbDevices->isDeviceConnected(CorsairVendorID, WirlessPID))
+    else if (hidDevices->isDeviceConnected(CorsairVendorID, WirlessPID))
     {
         LastMode = currentMode;
         currentMode = ConnectionType::Wireless;
         if (LastMode != currentMode)
         {
-            wirlessUSB.emplace(CorsairVendorID, WirlessPID);
+            wirelessHID.emplace(CorsairVendorID, WirlessPID);
         }
 
         return true;

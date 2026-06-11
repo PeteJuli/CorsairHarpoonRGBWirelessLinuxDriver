@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../USB/USB.hpp"
+#include "../HID/HID.hpp"
 #include <optional>
 
 enum class ConnectionType 
@@ -12,9 +12,9 @@ enum class ConnectionType
 
 class MouseDriver
 {
-    std::optional<USB> usbDevices;
-    std::optional<USB> cableUSB;
-    std::optional<USB> wirlessUSB;
+    std::optional<HID> hidDevices;
+    std::optional<HID> cableHID;
+    std::optional<HID> wirelessHID;
 
     ConnectionType currentMode;
     ConnectionType LastMode;
