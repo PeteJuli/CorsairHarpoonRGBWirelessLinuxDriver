@@ -1,6 +1,6 @@
 Simple Userspace Linux Driver for the Corsair Harpoon RGB Wireless in C++ with HIDAPI
 
-Basic Features supported for now(DPI, MainColor, PollingRate)
+Basic Features supported for now(DPI, Color for the Logo, Color for the Profile Button, Brightness, PollingRate)
 
 ToDo:
 - Make a fancy GUI

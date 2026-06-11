@@ -35,7 +35,7 @@ public:
 
 
     bool setEssentials();
-    bool setDPI(uint32_t DPI);
+    bool setDPI(uint32_t dpi);
     bool setBrightness(uint32_t brightness);
     bool setColor(Color color);
     bool setColor(Color logo, Color profileButton);

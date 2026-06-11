@@ -59,14 +59,14 @@ void splitBytes(uint32_t value, uint8_t *bytes)
     bytes[3] = value & 0xFF; // Least significant byte
 }
 
-bool MouseDriver::setDPI(uint32_t DPI)
+bool MouseDriver::setDPI(uint32_t dpi)
 {
     std::array<uint8_t, 64> buffer{};
 
     buffer[1] = 0x01;
     buffer[2] = 0x20;
     uint8_t dpiValue[4];
-    splitBytes(swapEndian(DPI), dpiValue);
+    splitBytes(swapEndian(dpi), dpiValue);
     buffer[4] = dpiValue[0];
     buffer[5] = dpiValue[1];
     // buffer[6] = dpiValue[2];//Dont need them for dpi
