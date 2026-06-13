@@ -59,7 +59,7 @@ void splitBytes(uint32_t value, uint8_t *bytes)
     bytes[3] = value & 0xFF; // Least significant byte
 }
 
-bool MouseDriver::setDPI(uint32_t dpi)
+bool MouseDriver::setDPI(uint32_t dpi)//From 1 to 10000
 {
     std::array<uint8_t, 64> buffer{};
 
@@ -69,7 +69,7 @@ bool MouseDriver::setDPI(uint32_t dpi)
     splitBytes(swapEndian(dpi), dpiValue);
     buffer[4] = dpiValue[0];
     buffer[5] = dpiValue[1];
-    // buffer[6] = dpiValue[2];//Dont need them for dpi
+    // buffer[6] = dpiValue[2];//Dont need them for dpi 10000 fits in two bytes
     // buffer[7] = dpiValue[3];
 
     return writeToMouse(buffer);
@@ -85,10 +85,19 @@ bool MouseDriver::setBrightness(uint32_t brightness)//set Brightness fom 0 to 10
     splitBytes(swapEndian(brightness), brightnessValue);
     buffer[4] = brightnessValue[0];
     buffer[5] = brightnessValue[1];
-    // buffer[6] = brightnessValue[2];//Dont need them for brightness
+    // buffer[6] = brightnessValue[2];//Dont need them for brightness 1000 fits in two bytes
     // buffer[7] = brightnessValue[3];
 
     return writeToMouse(buffer);
+}
+
+//Cause of Alpha we need to calculate the opacity per channel(ICUE does this too). Proably just set it with brightness... 
+uint8_t getOpacitySingleChannel(uint8_t color, uint8_t alpha)
+{
+     uint16_t temp = color * alpha;
+
+    //Bit shift for division by 255
+    return (temp + 1 + (temp >> 8)) >> 8;
 }
 
 bool MouseDriver::setColor(Color logo, Color profileButton)
@@ -97,12 +106,12 @@ bool MouseDriver::setColor(Color logo, Color profileButton)
 
     buffer[1] = 0x06;
     buffer[3] = 0x06;
-    buffer[7] = profileButton.red;
-    buffer[8] = logo.red;
-    buffer[9] = profileButton.green;
-    buffer[10] = logo.green;
-    buffer[11] = profileButton.blue;
-    buffer[12] = logo.blue;
+    buffer[7] = getOpacitySingleChannel(profileButton.red, profileButton.alpha);
+    buffer[8] = getOpacitySingleChannel(logo.red, logo.alpha);
+    buffer[9] = getOpacitySingleChannel(profileButton.green, profileButton.alpha);
+    buffer[10] = getOpacitySingleChannel(logo.green, logo.alpha);
+    buffer[11] = getOpacitySingleChannel(profileButton.blue, profileButton.alpha);
+    buffer[12] = getOpacitySingleChannel(logo.blue, logo.alpha);
 
     return writeToMouse(buffer);
 }
@@ -175,4 +184,43 @@ bool MouseDriver::blockDefaultReset()
     buffer[1] = 0x12;
 
     return writeToMouse(buffer);
+}
+
+bool MouseDriver::setAngleSnapping(bool enabled)
+{
+    std::array<uint8_t, 64> buffer{};
+
+    buffer[1] = 0x01;
+    buffer[2] = 0x07;
+    buffer[4] = enabled ? 0x01 : 0x00;
+
+    return writeToMouse(buffer);
+}
+
+bool MouseDriver::setButtonResponseOptimization(bool enabled)
+{
+    std::array<uint8_t, 64> buffer{};
+
+    buffer[1] = 0x01;
+    buffer[2] = 0xb0;
+    buffer[4] = enabled ? 0x01 : 0x00;
+
+    return writeToMouse(buffer);
+}
+
+bool MouseDriver::setPowerSavingMode(bool enabled, Color logo, Color profileButton)
+{
+    if (enabled)
+    {
+        return setButtonResponseOptimization(true) && setColor(Color{0, 0, 0, 0}, Color{0, 0, 0, 0});//Icue only disabled the logo so we improve this hahha
+    }
+    else
+    {
+        return setButtonResponseOptimization(false) && setColor(logo, profileButton);
+    }
+}
+
+bool MouseDriver::setPowerSavingMode(bool enabled, Color color)
+{
+    return setPowerSavingMode(enabled, color, color);
 }

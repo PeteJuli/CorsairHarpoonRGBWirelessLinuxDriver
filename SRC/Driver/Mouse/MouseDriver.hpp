@@ -15,6 +15,7 @@ struct Color
     uint8_t red;
     uint8_t green;
     uint8_t blue;
+    uint8_t alpha = 255; // Default to fully opaque
 };
 
 class MouseDriver
@@ -40,6 +41,10 @@ public:
     bool setColor(Color color);
     bool setColor(Color logo, Color profileButton);
     bool setPollingRate(uint8_t rate);
+    bool setAngleSnapping(bool enabled);
+    bool setButtonResponseOptimization(bool enabled);
+    bool setPowerSavingMode(bool enabled, Color logo, Color profileButton);
+    bool setPowerSavingMode(bool enabled, Color color);
 
     ConnectionType getCurrentMode() const noexcept { return currentMode; }
     ConnectionType getLastMode() const noexcept { return LastMode; }
