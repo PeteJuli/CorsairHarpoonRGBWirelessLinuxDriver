@@ -1,12 +1,12 @@
-#include <iostream>
-#include <unistd.h>
-#include "Driver/Mouse/MouseDriver.hpp"
+#include "Driver/Mouse/Mouse.hpp"
+#include <chrono>
+#include <thread>
 
 int main()
 {
-    MouseDriver mouse;
+    Mouse mouse;
 
-    //Count for DefaultReset
+    // Count for DefaultReset
     int count = 0;
 
     while (true) // Maybe change this
@@ -16,17 +16,17 @@ int main()
             mouse.blockDefaultReset();
             count = 0;
         }
-        
+
         if (mouse.decideMode())
         {
             if (mouse.getLastMode() != mouse.getCurrentMode())
             {
                 mouse.setPollingRate(0x04);
 
-                //Sometime the restart of pullingrate needs to be delayed to set the other things
-                sleep(1);
+                // Sometime the restart of pullingrate needs to be delayed to set the other things
+                std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
-                //cause of sleep
+                // cause of sleep
                 count++;
 
                 mouse.setEssentials();
@@ -40,8 +40,8 @@ int main()
         }
 
         count++;
-        sleep(1);
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
     }
 
-     return 0;
+    return 0;
 }

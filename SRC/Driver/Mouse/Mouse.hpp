@@ -1,6 +1,7 @@
 #pragma once
 
-#include "../HID/HID.hpp"
+#include "../HID/Device/Device.hpp"
+#include "../HID/Context/Context.hpp"
 #include <optional>
 
 enum class ConnectionType 
@@ -18,18 +19,20 @@ struct Color
     uint8_t alpha = 255; // Default to fully opaque
 };
 
-class MouseDriver
+class Mouse
 {
-    std::optional<HID> hidDevices;
-    std::optional<HID> cableHID;
-    std::optional<HID> wirelessHID;
+    std::optional<HID::Context> hidContext;//Maybe move this to the main?
+    std::optional<HID::Device> hidDevices;
+    std::optional<HID::Device> cableHID;
+    std::optional<HID::Device> wirelessHID;
 
     ConnectionType currentMode;
     ConnectionType LastMode;
     
-    bool writeToMouse(std::span<uint8_t, 64> buffer);
+    bool writeToMouse(std::array<uint8_t, 64> buffer);
 public:
-    MouseDriver();
+    Mouse();
+    ~Mouse();
 
     bool decideMode();
     bool blockDefaultReset();

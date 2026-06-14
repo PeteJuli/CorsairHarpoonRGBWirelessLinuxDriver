@@ -4,7 +4,6 @@ Basic Features supported for now(DPI, Color for the Logo, Color for the Profile 
 
 ToDo:
 - Make a fancy GUI
-- Reverse some more Features(Profiles, Battery etc)
 
 Feel free to add some things and release it.
 
