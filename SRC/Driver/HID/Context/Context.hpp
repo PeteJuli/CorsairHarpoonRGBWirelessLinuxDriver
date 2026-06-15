@@ -11,9 +11,9 @@ class Context
     Context();
     ~Context();
 
-    // Verhindere, dass dieser Kontext kopiert wird
-    Context(const Context &) = delete;
-    Context &operator=(const Context &) = delete;
+    //Prohibit copying
+    Context(const Context &) = delete;//Copy constructor
+    Context &operator=(const Context &) = delete; //Copy assignment operator
 };
 
 } // namespace HID

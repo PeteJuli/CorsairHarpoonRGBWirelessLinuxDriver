@@ -8,6 +8,9 @@ HID::Context::Context()
     if (hid_init() < 0)
     {
         std::cerr << "Failed to initialize HIDAPI context" << std::endl;
+    }else 
+    {
+        created = true;
     }
 }
 
