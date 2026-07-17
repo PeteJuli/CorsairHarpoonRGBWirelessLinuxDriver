@@ -1,6 +1,7 @@
 #include "Driver/Mouse/Mouse.hpp"
 #include <chrono>
 #include <thread>
+#include <iostream>
 
 int main()
 {
@@ -15,6 +16,7 @@ int main()
         {
             mouse.blockDefaultReset();
             count = 0;
+            std::cout << "Default Settings blocked!" << std::endl;
         }
 
         if (mouse.decideMode())

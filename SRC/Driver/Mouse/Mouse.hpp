@@ -4,7 +4,7 @@
 #include "../HID/Context/Context.hpp"
 #include <optional>
 
-enum class ConnectionType 
+enum class ConnectionType
 {
     Unknown,
     Cable,
@@ -21,22 +21,12 @@ struct Color
 
 class Mouse
 {
-    std::optional<HID::Context> hidContext;//Maybe move this to the main?
-    std::optional<HID::Device> hidDevices;
-    std::optional<HID::Device> cableHID;
-    std::optional<HID::Device> wirelessHID;
-
-    ConnectionType currentMode;
-    ConnectionType LastMode;
-    
-    bool writeToMouse(std::array<uint8_t, 64> buffer);
 public:
     Mouse();
     ~Mouse();
 
     bool decideMode();
     bool blockDefaultReset();
-
 
     bool setEssentials();
     bool setDPI(uint32_t dpi);
@@ -49,6 +39,16 @@ public:
     bool setPowerSavingMode(bool enabled, Color logo, Color profileButton);
     bool setPowerSavingMode(bool enabled, Color color);
 
-    ConnectionType getCurrentMode() const noexcept { return currentMode; }
-    ConnectionType getLastMode() const noexcept { return LastMode; }
+    ConnectionType getCurrentMode() const noexcept;
+    ConnectionType getLastMode() const noexcept;
+
+private:
+    std::optional<HID::Context> m_hidContext;
+    std::optional<HID::Device> m_cableHID;
+    std::optional<HID::Device> m_wirelessHID;
+
+    ConnectionType m_currentMode;
+    ConnectionType m_lastMode;
+
+    bool writeToMouse(std::array<uint8_t, 64> buffer);
 };

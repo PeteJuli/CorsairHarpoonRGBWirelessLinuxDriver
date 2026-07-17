@@ -5,41 +5,37 @@
 // Constants
 constexpr uint16_t CorsairVendorID = 0x1B1C;
 constexpr uint16_t CablePID = 0x1B5E;
-constexpr uint16_t WirlessPID = 0x1BDC;
+constexpr uint16_t WirelessPID = 0x1BDC;
 constexpr uint8_t CableOffset = 0x08;
-constexpr uint8_t WirlessOffset = 0x09; //if the Slipstream Reciver and Mouse were paired its 0x09 else its 0x0a(Dont know why but it is what it is)
+constexpr uint8_t WirlessOffset = 0x09; // if the Slipstream Reciver and Mouse were paired its 0x09 else its 0x0a(Dont know why but it is what it is)
 
 Mouse::Mouse() //: cable(0x1b1c, 0x1b5e), wirless(0x1b1c, 0x1bdc)
 {
-    hidContext.emplace();
+    m_hidContext.emplace();
 
-    // Get Main USB Device List for Scanning
-    hidDevices.emplace();
-
-    //For decide Logic
-    currentMode = ConnectionType::Unknown;
-    LastMode = ConnectionType::Unknown;
+    // For decide Logic
+    m_currentMode = ConnectionType::Unknown;
+    m_lastMode = ConnectionType::Unknown;
 }
 
 Mouse::~Mouse()
 {
-    //Reset containers to trigger custom deleters in right order(Context must be the last)
-    hidDevices.reset();//Not necessary but safty first
-    wirelessHID.reset();
-    cableHID.reset();
-    hidContext.reset();
+    // Reset containers to trigger custom deleters in right order(Context must be the last)
+    m_wirelessHID.reset();
+    m_cableHID.reset();
+    m_hidContext.reset();
 }
 
 bool Mouse::writeToMouse(std::array<uint8_t, 64> buffer)
 {
-    switch (currentMode)
+    switch (m_currentMode)
     {
     case ConnectionType::Cable:
         buffer[0] = CableOffset;
-        return cableHID->write(buffer);
+        return m_cableHID->write(buffer);
     case ConnectionType::Wireless:
         buffer[0] = WirlessOffset;
-        return wirelessHID->write(buffer);
+        return m_wirelessHID->write(buffer);
     default:
         return false;
     }
@@ -59,7 +55,7 @@ bool Mouse::setEssentials()
     essentials1[1] = 0x0d;
     essentials1[3] = 0x01;
 
-    //block default reset needs to be called after them
+    // block default reset needs to be called after them
     return writeToMouse(essentials0) && writeToMouse(essentials1) && blockDefaultReset();
 }
 
@@ -67,22 +63,22 @@ bool Mouse::setEssentials()
 std::array<uint8_t, 4> splitBytes(uint32_t value)
 {
     std::array<uint8_t, 4> buffer{};
-    
-    buffer[0] = static_cast<uint8_t>((value >> 24) & 0xFF);// Most significant byte
+
+    buffer[0] = static_cast<uint8_t>((value >> 24) & 0xFF); // Most significant byte
     buffer[1] = static_cast<uint8_t>((value >> 16) & 0xFF);
     buffer[2] = static_cast<uint8_t>((value >> 8) & 0xFF);
-    buffer[3] = static_cast<uint8_t>(value & 0xFF);// Least significant byte
+    buffer[3] = static_cast<uint8_t>(value & 0xFF); // Least significant byte
 
     return buffer;
 }
 
-uint32_t checkEndian(uint32_t value) 
+uint32_t checkEndian(uint32_t value)
 {
     // CPU = Little-Endian -> Swap the Bytes (No need to chek for MixedEndian its to uncommon...)
-    return (std::endian::native == std::endian::little)  ? std::byteswap(value) : value; 
+    return (std::endian::native == std::endian::little) ? std::byteswap(value) : value;
 }
 
-bool Mouse::setDPI(uint32_t dpi)//From 1 to 10000
+bool Mouse::setDPI(uint32_t dpi) // From 1 to 10000
 {
     std::array<uint8_t, 64> buffer{};
 
@@ -98,7 +94,7 @@ bool Mouse::setDPI(uint32_t dpi)//From 1 to 10000
     return writeToMouse(buffer);
 }
 
-bool Mouse::setBrightness(uint32_t brightness)//set Brightness fom 0 to 1000
+bool Mouse::setBrightness(uint32_t brightness) // set Brightness fom 0 to 1000
 {
     std::array<uint8_t, 64> buffer{};
 
@@ -113,12 +109,12 @@ bool Mouse::setBrightness(uint32_t brightness)//set Brightness fom 0 to 1000
     return writeToMouse(buffer);
 }
 
-//Cause of Alpha we need to calculate the opacity per channel(ICUE does this too). Proably just set it with brightness... 
+// Cause of Alpha we need to calculate the opacity per channel(ICUE does this too). Proably just set it with brightness...
 uint8_t getOpacitySingleChannel(uint8_t color, uint8_t alpha)
 {
-     uint16_t temp = static_cast<uint16_t>(color * alpha);
+    uint16_t temp = static_cast<uint16_t>(color * alpha);
 
-    //Bit shift for division by 255
+    // Bit shift for division by 255
     return static_cast<uint8_t>((temp + 1 + (temp >> 8)) >> 8);
 }
 
@@ -156,41 +152,40 @@ bool Mouse::setPollingRate(uint8_t rate)
 
 bool Mouse::decideMode()
 {
-    // Start with Cable cause if both are connected we want to use the cable connection
-    if (hidDevices->isDeviceConnected(CorsairVendorID, CablePID))
+    // Start with Cable cause if both are connected we want to use cable connection
+    if (m_hidContext->isDeviceConnected(CorsairVendorID, CablePID))
     {
-        LastMode = currentMode;
-        currentMode = ConnectionType::Cable;
-        if (LastMode != currentMode)
+        m_lastMode = m_currentMode;
+        m_currentMode = ConnectionType::Cable;
+        if (m_lastMode != m_currentMode)
         {
-            cableHID.emplace(CorsairVendorID, CablePID);
+            m_cableHID.emplace(m_hidContext.value(), CorsairVendorID, CablePID);
         }
 
         return true;
     }
-    else if (hidDevices->isDeviceConnected(CorsairVendorID, WirlessPID))
+
+    if (m_hidContext->isDeviceConnected(CorsairVendorID, WirelessPID))
     {
-        LastMode = currentMode;
-        currentMode = ConnectionType::Wireless;
-        if (LastMode != currentMode)
+        m_lastMode = m_currentMode;
+        m_currentMode = ConnectionType::Wireless;
+        if (m_lastMode != m_currentMode)
         {
-            wirelessHID.emplace(CorsairVendorID, WirlessPID);
+            m_wirelessHID.emplace(m_hidContext.value(), CorsairVendorID, WirelessPID);
         }
 
         return true;
     }
-    else
-    {
-        LastMode = currentMode;
-        currentMode = ConnectionType::Unknown;
-        return false;
-    }
+
+    m_lastMode = m_currentMode;
+    m_currentMode = ConnectionType::Unknown;
+    return false;
 }
 
 bool Mouse::blockDefaultReset()
 {
     // Every 22 seconds this needs to be sent if not -> The mouse resets to default mode
-    //sleep(22);
+    // sleep(22);
 
     std::array<uint8_t, 64> buffer{};
     buffer[1] = 0x12;
@@ -224,7 +219,7 @@ bool Mouse::setPowerSavingMode(bool enabled, Color logo, Color profileButton)
 {
     if (enabled)
     {
-        return setButtonResponseOptimization(true) && setColor(Color{0, 0, 0, 0}, Color{0, 0, 0, 0});//Icue only disabled the logo so we improve this hahha
+        return setButtonResponseOptimization(true) && setColor(Color{0, 0, 0, 0}, Color{0, 0, 0, 0}); // Icue only disabled the logo so we improve this hahha
     }
     else
     {
@@ -235,4 +230,14 @@ bool Mouse::setPowerSavingMode(bool enabled, Color logo, Color profileButton)
 bool Mouse::setPowerSavingMode(bool enabled, Color color)
 {
     return setPowerSavingMode(enabled, color, color);
+}
+
+ConnectionType Mouse::getCurrentMode() const noexcept 
+{ 
+    return m_currentMode; 
+}
+
+ConnectionType Mouse::getLastMode() const noexcept 
+{ 
+    return m_lastMode; 
 }

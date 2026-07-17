@@ -1,75 +1,70 @@
 #include "Device.hpp"
+#include "../Context/Context.hpp"
+#include <hidapi/hidapi.h>
 #include <iostream>
 
-namespace HID
+HID::Device::Device(const Context &context, uint16_t vendorID, uint16_t productID) : m_deviceList{nullptr, hid_free_enumeration}, m_handle{nullptr, hid_close}
 {
-
-Device::Device(uint16_t vendorID, uint16_t productID)
-{
-    if (isDeviceConnected(vendorID, productID))
+    if (!context.isCreated())
     {
-        getInterfaceHandle();
+        std::cerr << "Context is not created!" << std::endl;
+        return;
+    }
+
+    if (!getDevice(vendorID, productID))
+    {
+        std::cerr << "Failed to get Device from List!" << std::endl;
+        return;
+    }
+
+    if (!getInterfaceHandle())
+    {
+        std::cerr << "Failed to get Interface Handle! (permissions issue?)" << std::endl;
+        return;
     }
 }
 
-bool Device::isCreated() const noexcept
+bool HID::Device::isCreated() const noexcept
 {
-    return handle != nullptr;
+    return m_handle != nullptr;
 }
 
-bool Device::isDeviceConnected(uint16_t vendorID, uint16_t productID)
+bool HID::Device::getDevice(uint16_t vendorID, uint16_t productID)
 {
     // Get DeviceList from HIDAPI
     hid_device_info *rawDeviceList = hid_enumerate(vendorID, productID);
 
     if (!rawDeviceList)
-    {
-        // std::cerr << "No HID devices found matching VID: " << std::hex << vendorID << " PID: " << std::hex <<
-        // productID << std::endl;
         return false;
-    }
 
-    deviceList.reset(rawDeviceList);
+    m_deviceList.reset(rawDeviceList);
 
     return true;
 }
 
-bool Device::getInterfaceHandle()
+bool HID::Device::getInterfaceHandle()
 {
-    // Iterate through devices to find the Mouse
-    hid_device_info *currentDevice = deviceList.get();
-
-    while (currentDevice)
+    // Iterate through devices to find the device path for Inteface[1]
+    for (auto* currentDevice = m_deviceList.get(); currentDevice != nullptr; currentDevice = currentDevice->next)
     {
-        if (currentDevice->interface_number == 1) // Target Interface
+        // Interface-Check
+        if (currentDevice->interface_number != 1) continue;
+
+        // Try to open Handle
+        if (auto* rawHandle = hid_open_path(currentDevice->path))
         {
-            hid_device *rawHandle = hid_open_path(currentDevice->path);
-
-            if (!rawHandle)
-            {
-                std::cerr << "Failed to open HID device at path: " << currentDevice->path << " (permissions issue?)"
-                          << std::endl;
-            }
-            else
-            {
-                handle.reset(rawHandle);
-                return true;
-            }
-
-            break;
+            m_handle.reset(rawHandle);
+            return true;
         }
-        currentDevice = currentDevice->next;
     }
 
     return false;
 }
 
-bool Device::write(std::span<const uint8_t, 64> buffer)
+bool HID::Device::write(std::span<const uint8_t, 64> buffer)
 {
     if (!isCreated())
         return false;
 
-    return (hid_write(handle.get(), buffer.data(), buffer.size()) > 0);
+    return (hid_write(m_handle.get(), buffer.data(), buffer.size()) > 0);
 }
-
-} // namespace HID
